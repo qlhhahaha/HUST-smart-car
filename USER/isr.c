@@ -1,5 +1,3 @@
-
-
 /*********************************************************************************************************************
  * COPYRIGHT NOTICE
  * Copyright (c) 2020,逐飞科技
@@ -13,93 +11,72 @@
  * @company	   		成都逐飞科技有限公司
  * @author     		逐飞科技(QQ3184284598)
  * @version    		查看doc内version文件 版本说明
- * @Software 		ADS v1.2.2
- * @Target core		TC377TP
+ * @Software 		tasking v6.3r1
+ * @Target core		TC264D
  * @Taobao   		https://seekfree.taobao.com/
- * @date       		2020-11-23
+ * @date       		2020-3-23
  ********************************************************************************************************************/
 
 #include "isr_config.h"
 #include "isr.h"
 
-uint8 mpid_flag;
-uint8 spid_flag;
-extern int32 motor_duty;
-extern M_PID mpid;
-extern int16 enc_spd;
-
-extern uint32 servo_duty;
-extern S_PID spid;
-
 //PIT中断函数  示例
-IFX_INTERRUPT(cc60_pit_ch0_isr, CCU6_0_CH0_INT_VECTAB_NUM, CCU6_0_CH0_ISR_PRIORITY)
+IFX_INTERRUPT(cc60_pit_ch0_isr, CCU6_0_CH0_INT_SERVICE, CCU6_0_CH0_ISR_PRIORITY)
 {
-    enableInterrupts(); //开启中断嵌套
-    PIT_CLEAR_FLAG(CCU6_0, PIT_CH0);
-    Enc_Int();
-    if (mpid_flag)
-    {
-        Motor_Pid(&motor_duty, enc_spd, &mpid);
-        Motor_Duty();
-    }
-    if (spid_flag)
-    {
-        Servo_Pid(&servo_duty, &spid);
-        Servo_Duty();
-    }
+	Encoder_Count();
+	PIT_CLEAR_FLAG(CCU6_0, PIT_CH0);
 }
 
-IFX_INTERRUPT(cc60_pit_ch1_isr, CCU6_0_CH1_INT_VECTAB_NUM, CCU6_0_CH1_ISR_PRIORITY)
+
+IFX_INTERRUPT(cc60_pit_ch1_isr, CCU6_0_CH1_INT_SERVICE, CCU6_0_CH1_ISR_PRIORITY)
 {
-    enableInterrupts(); //开启中断嵌套
-    PIT_CLEAR_FLAG(CCU6_0, PIT_CH1);
-    Induc_GetInfo();
+	PITOnTimeHandle();
+	PIT_CLEAR_FLAG(CCU6_0, PIT_CH1);
 }
 
-IFX_INTERRUPT(cc61_pit_ch0_isr, CCU6_1_CH0_INT_VECTAB_NUM, CCU6_1_CH0_ISR_PRIORITY)
+IFX_INTERRUPT(cc61_pit_ch0_isr, CCU6_1_CH0_INT_SERVICE, CCU6_1_CH0_ISR_PRIORITY)
 {
-    enableInterrupts(); //开启中断嵌套
-    PIT_CLEAR_FLAG(CCU6_1, PIT_CH0);
+	PIT_CLEAR_FLAG(CCU6_1, PIT_CH0);
 }
 
-IFX_INTERRUPT(cc61_pit_ch1_isr, CCU6_1_CH1_INT_VECTAB_NUM, CCU6_1_CH1_ISR_PRIORITY)
+IFX_INTERRUPT(cc61_pit_ch1_isr, CCU6_1_CH1_INT_SERVICE, CCU6_1_CH1_ISR_PRIORITY)
 {
-    enableInterrupts(); //开启中断嵌套
-    PIT_CLEAR_FLAG(CCU6_1, PIT_CH1);
+	PIT_CLEAR_FLAG(CCU6_1, PIT_CH1);
+
 }
 
-IFX_INTERRUPT(eru_ch0_ch4_isr, ERU_CH0_CH4_INT_VECTAB_NUM, ERU_CH0_CH4_INT_PRIO)
-{
-    enableInterrupts();                    //开启中断嵌套
-    if (GET_GPIO_FLAG(ERU_CH0_REQ4_P10_7)) //通道0中断
-    {
-        CLEAR_GPIO_FLAG(ERU_CH0_REQ4_P10_7);
-    }
 
-    if (GET_GPIO_FLAG(ERU_CH4_REQ13_P15_5)) //通道4中断
-    {
-        CLEAR_GPIO_FLAG(ERU_CH4_REQ13_P15_5);
-    }
+
+
+IFX_INTERRUPT(eru_ch0_ch4_isr, ERU_CH0_CH4_INT_SERVICE, ERU_CH0_CH4_INT_PRIO)
+{
+	if(GET_GPIO_FLAG(ERU_CH0_REQ4_P10_7))//通道0中断
+	{
+		CLEAR_GPIO_FLAG(ERU_CH0_REQ4_P10_7);
+	}
+
+	if(GET_GPIO_FLAG(ERU_CH4_REQ13_P15_5))//通道4中断
+	{
+		CLEAR_GPIO_FLAG(ERU_CH4_REQ13_P15_5);
+	}
 }
 
-IFX_INTERRUPT(eru_ch1_ch5_isr, ERU_CH1_CH5_INT_VECTAB_NUM, ERU_CH1_CH5_INT_PRIO)
+IFX_INTERRUPT(eru_ch1_ch5_isr, ERU_CH1_CH5_INT_SERVICE, ERU_CH1_CH5_INT_PRIO)
 {
-    enableInterrupts();                    //开启中断嵌套
-    if (GET_GPIO_FLAG(ERU_CH1_REQ5_P10_8)) //通道1中断
-    {
-        CLEAR_GPIO_FLAG(ERU_CH1_REQ5_P10_8);
-    }
+	if(GET_GPIO_FLAG(ERU_CH1_REQ5_P10_8))//通道1中断
+	{
+		CLEAR_GPIO_FLAG(ERU_CH1_REQ5_P10_8);
+	}
 
-    if (GET_GPIO_FLAG(ERU_CH5_REQ1_P15_8)) //通道5中断
-    {
-        CLEAR_GPIO_FLAG(ERU_CH5_REQ1_P15_8);
-    }
+	if(GET_GPIO_FLAG(ERU_CH5_REQ1_P15_8))//通道5中断
+	{
+		CLEAR_GPIO_FLAG(ERU_CH5_REQ1_P15_8);
+	}
 }
 
 //由于摄像头pclk引脚默认占用了 2通道，用于触发DMA，因此这里不再定义中断函数
-//IFX_INTERRUPT(eru_ch2_ch6_isr, ERU_CH2_CH6_INT_VECTAB_NUM, ERU_CH2_CH6_INT_PRIO)
+//IFX_INTERRUPT(eru_ch2_ch6_isr, ERU_CH2_CH6_INT_SERVICE, ERU_CH2_CH6_INT_PRIO)
 //{
-//	enableInterrupts();//开启中断嵌套
 //	if(GET_GPIO_FLAG(ERU_CH2_REQ7_P00_4))//通道2中断
 //	{
 //		CLEAR_GPIO_FLAG(ERU_CH2_REQ7_P00_4);
@@ -112,93 +89,87 @@ IFX_INTERRUPT(eru_ch1_ch5_isr, ERU_CH1_CH5_INT_VECTAB_NUM, ERU_CH1_CH5_INT_PRIO)
 //	}
 //}
 
-IFX_INTERRUPT(eru_ch3_ch7_isr, ERU_CH3_CH7_INT_VECTAB_NUM, ERU_CH3_CH7_INT_PRIO)
+
+
+IFX_INTERRUPT(eru_ch3_ch7_isr, ERU_CH3_CH7_INT_SERVICE, ERU_CH3_CH7_INT_PRIO)
 {
-    enableInterrupts();                    //开启中断嵌套
-    if (GET_GPIO_FLAG(ERU_CH3_REQ6_P02_0)) //通道3中断
-    {
-        CLEAR_GPIO_FLAG(ERU_CH3_REQ6_P02_0);
-        if (CAMERA_GRAYSCALE == camera_type)
-            mt9v03x_vsync();
-    }
-    if (GET_GPIO_FLAG(ERU_CH7_REQ16_P15_1)) //通道7中断
-    {
-        CLEAR_GPIO_FLAG(ERU_CH7_REQ16_P15_1);
-    }
+	if(GET_G PIO_FLAG(ERU_CH3_REQ6_P02_0))//通道3中断
+	{
+		CLEAR_GPIO_FLAG(ERU_CH3_REQ6_P02_0);
+		if(1 == camera_type)	mt9v03x_vsync();
+	}
+	if(GET_GPIO_FLAG(ERU_CH7_REQ16_P15_1))//通道7中断
+	{
+		CLEAR_GPIO_FLAG(ERU_CH7_REQ16_P15_1);
+	}
 }
 
-IFX_INTERRUPT(dma_ch5_isr, ERU_DMA_INT_VECTAB_NUM, ERU_DMA_INT_PRIO)
+
+
+IFX_INTERRUPT(dma_ch5_isr, ERU_DMA_INT_SERVICE, ERU_DMA_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
-    if (CAMERA_GRAYSCALE == camera_type)
-        mt9v03x_dma();
+	if(1 == camera_type)	mt9v03x_dma();
 }
+
 
 //串口中断函数  示例
-IFX_INTERRUPT(uart0_tx_isr, UART0_INT_VECTAB_NUM, UART0_TX_INT_PRIO)
+IFX_INTERRUPT(uart0_tx_isr, UART0_INT_SERVICE, UART0_TX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrTransmit(&uart0_handle);
 }
-IFX_INTERRUPT(uart0_rx_isr, UART0_INT_VECTAB_NUM, UART0_RX_INT_PRIO)
+IFX_INTERRUPT(uart0_rx_isr, UART0_INT_SERVICE, UART0_RX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrReceive(&uart0_handle);
 }
-IFX_INTERRUPT(uart0_er_isr, UART0_INT_VECTAB_NUM, UART0_ER_INT_PRIO)
+IFX_INTERRUPT(uart0_er_isr, UART0_INT_SERVICE, UART0_ER_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrError(&uart0_handle);
 }
 
 //串口1默认连接到摄像头配置串口
-IFX_INTERRUPT(uart1_tx_isr, UART1_INT_VECTAB_NUM, UART1_TX_INT_PRIO)
+IFX_INTERRUPT(uart1_tx_isr, UART1_INT_SERVICE, UART1_TX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrTransmit(&uart1_handle);
 }
-IFX_INTERRUPT(uart1_rx_isr, UART1_INT_VECTAB_NUM, UART1_RX_INT_PRIO)
+IFX_INTERRUPT(uart1_rx_isr, UART1_INT_SERVICE, UART1_RX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrReceive(&uart1_handle);
-    if (CAMERA_GRAYSCALE == camera_type)
-        mt9v03x_uart_callback();
+    mt9v03x_uart_callback();
 }
-IFX_INTERRUPT(uart1_er_isr, UART1_INT_VECTAB_NUM, UART1_ER_INT_PRIO)
+IFX_INTERRUPT(uart1_er_isr, UART1_INT_SERVICE, UART1_ER_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrError(&uart1_handle);
 }
 
+
 //串口2默认连接到无线转串口模块
-IFX_INTERRUPT(uart2_tx_isr, UART2_INT_VECTAB_NUM, UART2_TX_INT_PRIO)
+IFX_INTERRUPT(uart2_tx_isr, UART2_INT_SERVICE, UART2_TX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrTransmit(&uart2_handle);
 }
-IFX_INTERRUPT(uart2_rx_isr, UART2_INT_VECTAB_NUM, UART2_RX_INT_PRIO)
+IFX_INTERRUPT(uart2_rx_isr, UART2_INT_SERVICE, UART2_RX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrReceive(&uart2_handle);
+///    wireless_uart_callback();
 }
-IFX_INTERRUPT(uart2_er_isr, UART2_INT_VECTAB_NUM, UART2_ER_INT_PRIO)
+IFX_INTERRUPT(uart2_er_isr, UART2_INT_SERVICE, UART2_ER_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrError(&uart2_handle);
 }
 
-IFX_INTERRUPT(uart3_tx_isr, UART3_INT_VECTAB_NUM, UART3_TX_INT_PRIO)
+
+
+IFX_INTERRUPT(uart3_tx_isr, UART3_INT_SERVICE, UART3_TX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrTransmit(&uart3_handle);
 }
-IFX_INTERRUPT(uart3_rx_isr, UART3_INT_VECTAB_NUM, UART3_RX_INT_PRIO)
+IFX_INTERRUPT(uart3_rx_isr, UART3_INT_SERVICE, UART3_RX_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
     IfxAsclin_Asc_isrReceive(&uart3_handle);
+///    WIFI_Uart_Callback();
 }
-IFX_INTERRUPT(uart3_er_isr, UART3_INT_VECTAB_NUM, UART3_ER_INT_PRIO)
+IFX_INTERRUPT(uart3_er_isr, UART3_INT_SERVICE, UART3_ER_INT_PRIO)
 {
-    enableInterrupts(); //开启中断嵌套
+
     IfxAsclin_Asc_isrError(&uart3_handle);
 }

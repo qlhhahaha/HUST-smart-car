@@ -11,58 +11,108 @@
  * @company	   		成都逐飞科技有限公司
  * @author     		逐飞科技(QQ3184284598)
  * @version    		查看doc内version文件 版本说明
- * @Software 		ADS v1.2.2
- * @Target core		TC377TP
+ * @Software 		tasking v6.3r1
+ * @Target core		TC264D
  * @Taobao   		https://seekfree.taobao.com/
- * @date       		2020-11-23
+ * @date       		2020-3-23
  ********************************************************************************************************************/
+
+//cpu1的作用：
 
 #include "headfile.h"
 
-extern MenuInfo mi;
-extern uint8 cam_flag;
-extern uint8 pro_mode;
-extern uint8 sobel_finish_flag;
-extern uint8 img_finish_flag;
-extern uint8 test1_finish_flag;
 
-extern uint8 mpid_flag;
-extern uint8 spid_flag;
+extern uint8 wifi_buff[];
 
-#pragma section all "cpu1_dsram"
-//将本语句与#pragma section all restore语句之间的全局变量都放在CPU1的RAM中
+//extern float LSpeedSet;//60;//2.5M/S
+extern float RSpeedSet;
+extern int16 LeftWheelSpeed;//60;//2.5M/S
+//extern int16 RightWheelSpeed;
+//extern int16 LeftMotorPWM;
+extern int16 RightMotorPWM;
 
+extern int Test;
+extern int16 spurroadtriangle_i;
+
+extern int16 spurroadtriangle_j;
+
+extern int16  left_right_lost_i;//左右全丢结束行取值自LastLoseAllLine
 void core1_main(void)
 {
-    disableInterrupts();
-    IfxScuWdt_disableCpuWatchdog(IfxScuWdt_getCpuWatchdogPassword());
-    //用户在此处调用各种初始化函数等
+	get_clk();
+   // IfxScuWdt_disableCpuWatchdog(IfxScuWdt_getCpuWatchdogPassword());
 
-    cam_flag = 0;
-    pro_mode = 0;
-    sobel_finish_flag = 0;
-    img_finish_flag = 0;
-    test1_finish_flag = 0;
+	float num1=ServoPID.Proportion, num2=ServoPID.Integral, num3=ServoPID.Derivative;
+	int8 flag=1;
+	char show[20];
 
-    mpid_flag = 0;
-    spid_flag = 0;
-
-    ips200_init();
-    Key_Init();
-    LED_Init();
-    Bat_Init();
-
-    Menu_Init();
-
-    //等待所有核心初始化完毕
-    IfxCpu_emitEvent(&g_cpuSyncEvent);
-    IfxCpu_waitEvent(&g_cpuSyncEvent, 0xFFFF);
-    enableInterrupts();
     while (TRUE)
     {
-        //用户在此处编写任务代码
-        Menu_Handle(&mi);
-    }
-}
+		if(mt9v03x_finish_flag)
+		{
+			ShowZoomImage(&mt9v03x_image[0], 188, 120, 94, 60);//左上角画面显示函数
+			Draw_Road();///将二值化的图像以及中线、前瞻显示出来
+			DrawLine1((ColumnMax-2)/2,Test,0,0);
+			sprintf((char*)show,"%4.2f",RSpeedSet);
+			ips200_showstr(140,6,show);
+			sprintf((char*)show,"%4d, %4d",LeftWheelSpeed, RightMotorPWM);
+			ips200_showstr(140,7,show);
+		}
 
-#pragma section all restore
+		if(SpeedParm.MaxSpeed)
+		{
+			if(GET_KEYCODE() == MY_KEY_UP)
+			{
+				if(flag==1)
+				{//增大比例系数P
+					num1+=0.01;
+					ServoPID.Proportion=num1;
+					sprintf(show,"KP : %3f",num1);
+					ips200_showstr(10,7,show);
+
+				}
+				else if(flag==2)
+				{//增大微分系数D
+					num3+=0.1;
+					ServoPID.Derivative=num3;
+					sprintf(show,"KD : %3f",num3);
+					ips200_showstr(10,9,show);
+				}
+			}
+			
+			if(GET_KEYCODE()==MY_KEY_DOWN)
+			{
+				if(flag==1)
+				{//减小比例系数P
+					num1-=0.01;
+					ServoPID.Proportion=num1;
+					sprintf(show,"KP : %3f",num1);
+					ips200_showstr(10,7,show);
+
+				}
+				else if(flag==2)
+				{//减小微分系数D
+					num3-=0.1;
+					ServoPID.Derivative=num3;
+					sprintf(show,"KD : %3f",num3);
+					ips200_showstr(10,9,show);
+				}
+			}
+
+			if(GET_KEYCODE()==MY_KEY_ENTER)
+			{//在比例系数和微分系数之间切换
+				if(flag==1)	flag=2;
+				else if(flag==2)	flag=1;
+			}
+
+			if(GET_KEYCODE()==MY_KEY_CANCLE)
+			{//开始进入控制
+				Motor_Control(0);
+				break;
+			}
+		}
+
+		//用户在此处编写任务代码
+    }
+
+}

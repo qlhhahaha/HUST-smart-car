@@ -11,10 +11,10 @@
  * @company	   		成都逐飞科技有限公司
  * @author     		逐飞科技(QQ3184284598)
  * @version    		查看doc内version文件 版本说明
- * @Software 		ADS v1.2.2
- * @Target core		TC377TP
+ * @Software 		tasking v6.3r1
+ * @Target core		TC264D
  * @Taobao   		https://seekfree.taobao.com/
- * @date       		2020-11-23
+ * @date       		2020-3-23
  ********************************************************************************************************************/
 
 
